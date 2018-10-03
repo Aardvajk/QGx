@@ -10,7 +10,7 @@ QMAKE_CXXFLAGS += -fexceptions -frtti -fno-strict-aliasing \
                   -DQT_NO_CAST_TO_ASCII \
                   -fcheck-new -DNOMINMAX -std=gnu++0x -m64
 
-QMAKE_CXXFLAGS_WARN_ON += -Wno-unknown-pragmas -Wno-comment -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter
+QMAKE_CXXFLAGS_WARN_ON += -Wno-unknown-pragmas -Wno-comment -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-attributes
 
 QMAKE_LFLAGS += -fexceptions -frtti -fno-builtin -fno-strict-aliasing \
                 -static-libgcc -static -Wl,-enable-auto-import \
@@ -36,7 +36,10 @@ PRE_TARGETDEPS += "C:/Projects/pcx/build-pcx/release/libpcx.a" \
 
 
 SOURCES += \
-    QGxGraphics/QGxGraphicsDevice.cpp
+    QGxGraphics/QGxGraphicsDevice.cpp \
+    QGxGraphics/QGxGraphicsWidget.cpp
 
 HEADERS += \
-    QGxGraphics/QGxGraphicsDevice.h
+    QGxGraphics/QGxGraphicsDevice.h \
+    QGxGraphics/QGxGraphicsWidget.h \
+    internal/qgx_common.h
