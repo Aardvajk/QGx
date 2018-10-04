@@ -18,6 +18,11 @@ QGx::GraphicsWidget::~GraphicsWidget()
     d->unregisterWidget(this);
 }
 
+QGx::GraphicsDevice &QGx::GraphicsWidget::device()
+{
+    return *d;
+}
+
 QPaintEngine *QGx::GraphicsWidget::paintEngine() const
 {
     return nullptr;

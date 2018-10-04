@@ -5,6 +5,7 @@
 #include "internal/qgx_common.h"
 
 #include <QtCore/QSize>
+#include <QtCore/QDebug>
 
 #include <vector>
 #include <unordered_map>
@@ -97,47 +98,45 @@ void SwapChain::release()
 class Cache
 {
 public:
-    Cache() : direct3d(nullptr), device(nullptr), back(nullptr), reset(true) { }
+    Cache() : back(nullptr), reset(true) { }
 
-    IDirect3D9 *direct3d;
-    IDirect3DDevice9 *device;
     IDirect3DSurface9 *back;
     std::unordered_map<QGx::GraphicsWidget*, SwapChain*> widgets;
     bool reset;
 };
 
-void createBasicDevice(Cache &cache, HWND hw, const QSize &size)
+void createBasicDevice(IDirect3D9 *direct3d, HWND hw, const QSize &size, IDirect3DDevice9 *&device)
 {
     D3DCAPS9 caps;
-    HRESULT r = cache.direct3d->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps);
+    HRESULT r = direct3d->GetDeviceCaps(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, &caps);
     if(FAILED(r))
     {
-        qgx_detail_com_ptr_release(cache.direct3d);
+        qgx_detail_com_ptr_release(direct3d);
         throw std::runtime_error("unable to get device caps");
     }
 
     auto params = createParams(hw, size);
 
-    r = cache.direct3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, NULL, vertexProcessing(caps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT), &params, &(cache.device));
+    r = direct3d->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, NULL, vertexProcessing(caps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT), &params, &(device));
     if(FAILED(r))
     {
-        qgx_detail_com_ptr_release(cache.device);
-        qgx_detail_com_ptr_release(cache.direct3d);
+        qgx_detail_com_ptr_release(device);
+        qgx_detail_com_ptr_release(direct3d);
 
         throw std::runtime_error("unable to create device");
     }
 
-    setGlobalDeviceSettings(cache.device);
+    setGlobalDeviceSettings(device);
 }
 
-void releaseDevice(Cache &cache)
+void releaseDevice(Cache &cache, IDirect3DDevice9 *&device)
 {
     for(auto widget: cache.widgets)
     {
         delete cache.widgets[widget.first];
     }
 
-    qgx_detail_com_ptr_release(cache.device);
+    qgx_detail_com_ptr_release(device);
 }
 
 bool contains(Cache &cache, QGx::GraphicsWidget *widget)
@@ -151,8 +150,8 @@ QGx::GraphicsDevice::GraphicsDevice()
 {
     cache.alloc<Cache>();
 
-    cache.get<Cache>().direct3d = Direct3DCreate9(D3D_SDK_VERSION);
-    if(!cache.get<Cache>().direct3d)
+    direct3d = Direct3DCreate9(D3D_SDK_VERSION);
+    if(!direct3d)
     {
         throw std::runtime_error("unable to create graphics device");
     }
@@ -164,23 +163,23 @@ QGx::GraphicsDevice::~GraphicsDevice()
 {
     for(auto widget: cache.get<Cache>().widgets)
     {
-        widget.first->d = 0;
-        unregisterWidget(widget.first);
+        delete cache.get<Cache>().widgets[widget.first];
     }
 
-    releaseDevice(cache.get<Cache>());
+    cache.get<Cache>().widgets.clear();
 
-    qgx_detail_com_ptr_release(cache.get<Cache>().direct3d);
+    releaseDevice(cache.get<Cache>(), device);
+    qgx_detail_com_ptr_release(direct3d);
 }
 
 void QGx::GraphicsDevice::reset()
 {
     if(cache.get<Cache>().widgets.empty())
     {
-        releaseDevice(cache.get<Cache>());
+        releaseDevice(cache.get<Cache>(), device);
 
         cache.get<Cache>().reset = false;
-        createBasicDevice(cache.get<Cache>(), NULL, QSize(0, 0));
+        createBasicDevice(direct3d, NULL, QSize(0, 0), device);
         
         return;
     }
@@ -200,44 +199,51 @@ void QGx::GraphicsDevice::reset()
 
     if(!device)
     {
-        createBasicDevice(cache.get<Cache>(), reinterpret_cast<HWND>(widgets.front()->winId()), widgets.front()->size());
+        createBasicDevice(direct3d, reinterpret_cast<HWND>(widgets.front()->winId()), widgets.front()->size(), device);
     }
     else
     {
         auto params = createParams(reinterpret_cast<HWND>(widgets.front()->winId()), widgets.front()->size());
 
-        HRESULT r = cache.get<Cache>().device->Reset(&params);
+        HRESULT r = device->Reset(&params);
         if(FAILED(r))
         {
-            releaseDevice(cache.get<Cache>());
+            releaseDevice(cache.get<Cache>(), device);
             throw std::runtime_error("unable to reset graphics device");
         }
 
-        setGlobalDeviceSettings(cache.get<Cache>().device);
+        setGlobalDeviceSettings(device);
     }
 
-    HRESULT r = cache.get<Cache>().device->GetSwapChain(0, &(cache.get<Cache>().widgets[widgets[0]]->p));
+    HRESULT r = device->GetSwapChain(0, &(cache.get<Cache>().widgets[widgets[0]]->p));
     if(FAILED(r))
     {
-        releaseDevice(cache.get<Cache>());
+        releaseDevice(cache.get<Cache>(), device);
         throw std::runtime_error("unable to create swap chain");
+    }
+
+    r = device->CreateDepthStencilSurface(widgets[0]->size().width(), widgets[0]->size().height(), D3DFMT_D24S8, D3DMULTISAMPLE_NONE, 0, false, &(cache.get<Cache>().widgets[widgets[0]]->ds), NULL);
+    if(FAILED(r))
+    {
+        releaseDevice(cache.get<Cache>(), device);
+        throw std::runtime_error("unable to create depth stencil surface");
     }
 
     for(unsigned i = 1; i < widgets.size(); ++i)
     {
         auto params = createParams(reinterpret_cast<HWND>(widgets[i]->winId()), widgets[i]->size());
 
-        r = cache.get<Cache>().device->CreateAdditionalSwapChain(&params, &(cache.get<Cache>().widgets[widgets[i]]->p));
+        r = device->CreateAdditionalSwapChain(&params, &(cache.get<Cache>().widgets[widgets[i]]->p));
         if(FAILED(r))
         {
-            releaseDevice(cache.get<Cache>());
+            releaseDevice(cache.get<Cache>(), device);
             throw std::runtime_error("unable to create swap chain");
         }
 
-        r = cache.get<Cache>().device->CreateDepthStencilSurface(widgets[i]->size().width(), widgets[i]->size().height(), D3DFMT_D24S8, D3DMULTISAMPLE_NONE, 0, false, &(cache.get<Cache>().widgets[widgets[i]]->ds), NULL);
+        r = device->CreateDepthStencilSurface(widgets[i]->size().width(), widgets[i]->size().height(), D3DFMT_D24S8, D3DMULTISAMPLE_NONE, 0, false, &(cache.get<Cache>().widgets[widgets[i]]->ds), NULL);
         if(FAILED(r))
         {
-            releaseDevice(cache.get<Cache>());
+            releaseDevice(cache.get<Cache>(), device);
             throw std::runtime_error("unable to create depth stencil surface");
         }
     }
@@ -248,19 +254,19 @@ void QGx::GraphicsDevice::reset()
 void QGx::GraphicsDevice::begin(GraphicsWidget *widget)
 {
     cache.get<Cache>().widgets[widget]->p->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &cache.get<Cache>().back);
-    cache.get<Cache>().device->SetRenderTarget(0, cache.get<Cache>().back);
+    device->SetRenderTarget(0, cache.get<Cache>().back);
 
-    cache.get<Cache>().device->SetDepthStencilSurface(cache.get<Cache>().widgets[widget]->ds);
+    device->SetDepthStencilSurface(cache.get<Cache>().widgets[widget]->ds);
 
-    cache.get<Cache>().device->BeginScene();
+    device->BeginScene();
 }
 
 void QGx::GraphicsDevice::end(GraphicsWidget *widget)
 {
-    cache.get<Cache>().device->EndScene();
+    device->EndScene();
     cache.get<Cache>().widgets[widget]->p->Present(NULL, NULL, reinterpret_cast<HWND>(widget->winId()), NULL, 0);
 
-    cache.get<Cache>().device->SetDepthStencilSurface(nullptr);
+    device->SetDepthStencilSurface(nullptr);
 
     qgx_detail_com_ptr_release(cache.get<Cache>().back);
 }

@@ -17,6 +17,8 @@ public:
     virtual ~GraphicsWidget() override;
 
 protected:
+    GraphicsDevice &device();
+
     virtual QPaintEngine *paintEngine() const override;
     virtual void resizeEvent(QResizeEvent *event) override;
 
