@@ -1,5 +1,5 @@
-#ifndef QGXGRAPHICSWIDGET_H
-#define QGXGRAPHICSWIDGET_H
+#ifndef QGX_GRAPHICSWIDGET_H
+#define QGX_GRAPHICSWIDGET_H
 
 #include <QtWidgets/QWidget>
 
@@ -30,4 +30,4 @@ private:
 
 }
 
-#endif // QGXGRAPHICSWIDGET_H
+#endif // QGX_GRAPHICSWIDGET_H
