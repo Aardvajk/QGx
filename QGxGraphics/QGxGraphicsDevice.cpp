@@ -5,7 +5,6 @@
 #include "internal/qgx_common.h"
 
 #include <QtCore/QSize>
-#include <QtCore/QDebug>
 
 #include <vector>
 #include <unordered_map>

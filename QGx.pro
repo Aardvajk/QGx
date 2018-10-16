@@ -8,7 +8,8 @@ DEFINES -= UNICODE
 
 QMAKE_CXXFLAGS += -fexceptions -frtti -fno-strict-aliasing \
                   -DQT_NO_CAST_TO_ASCII \
-                  -fcheck-new -DNOMINMAX -std=gnu++0x -m64
+                  -fcheck-new -DNOMINMAX -std=gnu++0x -m64 \
+                  -include "QtCore/QDebug"
 
 QMAKE_CXXFLAGS_WARN_ON += -Wno-unknown-pragmas -Wno-comment -Wno-maybe-uninitialized -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-attributes
 
