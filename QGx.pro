@@ -43,6 +43,4 @@ SOURCES += \
 HEADERS += \
     QGxGraphics/QGxGraphicsDevice.h \
     QGxGraphics/QGxGraphicsWidget.h \
-    internal/qgx_common.h \
-    QGxMaths/QGxColor.h \
-    QGxMaths/QGxVector.h
+    internal/qgx_common.h
