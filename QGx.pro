@@ -38,9 +38,11 @@ PRE_TARGETDEPS += "C:/Projects/pcx/build-pcx/release/libpcx.a" \
 
 SOURCES += \
     QGxGraphics/QGxGraphicsDevice.cpp \
-    QGxGraphics/QGxGraphicsWidget.cpp
+    QGxGraphics/QGxGraphicsWidget.cpp \
+    QGxMaths/QGxColor.cpp
 
 HEADERS += \
     QGxGraphics/QGxGraphicsDevice.h \
     QGxGraphics/QGxGraphicsWidget.h \
-    internal/qgx_common.h
+    internal/qgx_common.h \
+    QGxMaths/QGxColor.h
