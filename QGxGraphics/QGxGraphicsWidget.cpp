@@ -1,5 +1,7 @@
 #include "QGxGraphics/QGxGraphicsWidget.h"
 
+#include "GxMaths/GxSize.h"
+
 #include "QGxGraphics/QGxGraphicsDevice.h"
 
 QGx::GraphicsWidget::GraphicsWidget(GraphicsDevice &device, QWidget *parent) : QWidget(parent), d(&device)
@@ -16,6 +18,11 @@ QGx::GraphicsWidget::GraphicsWidget(GraphicsDevice &device, QWidget *parent) : Q
 QGx::GraphicsWidget::~GraphicsWidget()
 {
     d->unregisterWidget(this);
+}
+
+Gx::SizeF QGx::GraphicsWidget::sizeF() const
+{
+    return { static_cast<float>(width()), static_cast<float>(height()) };
 }
 
 QGx::GraphicsDevice &QGx::GraphicsWidget::device()

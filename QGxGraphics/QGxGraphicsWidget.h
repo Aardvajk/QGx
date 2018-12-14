@@ -3,6 +3,13 @@
 
 #include <QtWidgets/QWidget>
 
+namespace Gx
+{
+
+class SizeF;
+
+}
+
 namespace QGx
 {
 
@@ -15,6 +22,8 @@ class GraphicsWidget : public QWidget
 public:
     GraphicsWidget(GraphicsDevice &device, QWidget *parent = nullptr);
     virtual ~GraphicsWidget() override;
+
+    Gx::SizeF sizeF() const;
 
 protected:
     GraphicsDevice &device();
