@@ -22,6 +22,7 @@ public:
     void end(GraphicsWidget *widget);
 
     bool needsResetting() const;
+    const GraphicsWidget *currentWidget() const;
 
 private:
     friend class GraphicsWidget;

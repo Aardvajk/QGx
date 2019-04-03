@@ -97,11 +97,12 @@ void SwapChain::release()
 class Cache
 {
 public:
-    Cache() : back(nullptr), reset(true) { }
+    Cache() : back(nullptr), reset(true), curr(nullptr) { }
 
     IDirect3DSurface9 *back;
     std::unordered_map<QGx::GraphicsWidget*, SwapChain*> widgets;
     bool reset;
+    QGx::GraphicsWidget *curr;
 };
 
 void createBasicDevice(IDirect3D9 *direct3d, HWND hw, const QSize &size, IDirect3DDevice9 *&device)
@@ -257,6 +258,8 @@ void QGx::GraphicsDevice::begin(GraphicsWidget *widget)
 
     device->SetDepthStencilSurface(cache.get<Cache>().widgets[widget]->ds);
 
+    cache.get<Cache>().curr = widget;
+
     device->BeginScene();
 }
 
@@ -267,12 +270,19 @@ void QGx::GraphicsDevice::end(GraphicsWidget *widget)
 
     device->SetDepthStencilSurface(nullptr);
 
+    cache.get<Cache>().curr = nullptr;
+
     qgx_detail_com_ptr_release(cache.get<Cache>().back);
 }
 
 bool QGx::GraphicsDevice::needsResetting() const
 {
     return cache.get<Cache>().reset;
+}
+
+const QGx::GraphicsWidget *QGx::GraphicsDevice::currentWidget() const
+{
+    return cache.get<Cache>().curr;
 }
 
 void QGx::GraphicsDevice::scheduleReset()
